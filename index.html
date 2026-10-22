@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Free online Markdown editor with live preview. Convert plain text to Markdown. Works offline, installable as app.">
+<meta name="theme-color" content="#7c3aed">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MD Editor">
+<title>MD Editor — Free Online Markdown Editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237c3aed'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='14' font-weight='900' fill='white' text-anchor='middle'%3EMD%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%237c3aed'/%3E%3Ctext x='90' y='124' font-family='Arial' font-size='80' font-weight='900' fill='white' text-anchor='middle'%3EMD%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f7;
+    --panel-bg: #ffffff;
+    --border: #e0e0e0;
+    --text: #1d1d1f;
+    --text-dim: #6e6e73;
+    --accent: #7c3aed;
+    --accent-hover: #6d28d9;
+    --accent-light: rgba(124,58,237,0.1);
+    --btn-bg: #ffffff;
+    --btn-border: #d2d2d7;
+    --btn-hover: #f0f0f2;
+    --editor-bg: #ffffff;
+    --editor-text: #1d1d1f;
+    --danger: #ff3b30;
+    --ok: #34c759;
+  }
+  body.dark {
+    --bg: #000000;
+    --panel-bg: #1c1c1e;
+    --border: #38383a;
+    --text: #f5f5f7;
+    --text-dim: #8e8e93;
+    --accent: #a855f7;
+    --accent-hover: #c084fc;
+    --accent-light: rgba(168,85,247,0.15);
+    --btn-bg: #2c2c2e;
+    --btn-border: #3a3a3c;
+    --btn-hover: #3a3a3c;
+    --editor-bg: #1c1c1e;
+    --editor-text: #f5f5f7;
+    --danger: #ff453a;
+  }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    transition: background .2s, color .2s;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* ---------- Header ---------- */
+  .app-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    z-index: 20;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none; color: var(--text);
+    font-weight: 700; font-size: 15px;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+  .brand .logo { width: 28px; height: 28px; flex-shrink: 0; }
+  .header-actions {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    align-items: center;
+    margin-left: auto;
+  }
+  .btn {
+    padding: 7px 12px;
+    border: 1px solid var(--btn-border);
+    border-radius: 8px;
+    background: var(--btn-bg);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: background .15s, border-color .15s, transform .05s;
+    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+    line-height: 1;
+  }
+  .btn:hover { background: var(--btn-hover); }
+  .btn:active { transform: scale(.97); }
+  .btn.primary {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn.danger { color: var(--danger); }
+  .btn.danger:hover { background: rgba(255,59,48,.08); }
+  .btn.icon-only { padding: 7px 10px; }
+
+  /* ---------- Dropdowns ---------- */
+  .dropdown { position: relative; display: inline-block; }
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.2);
+    min-width: 200px;
+    padding: 4px;
+    display: none;
+    z-index: 100;
+  }
+  .dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu button {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; text-align: left;
+    padding: 8px 12px;
+    border: none; background: transparent;
+    color: var(--text); cursor: pointer;
+    border-radius: 6px; font-size: 13px;
+    font-family: inherit;
+  }
+  .dropdown-menu button:hover { background: var(--btn-hover); }
+
+  /* ---------- Transform bar ---------- */
+  .transform-bar {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    z-index: 15;
+  }
+  .transform-bar::-webkit-scrollbar { display: none; }
+  .transform-label {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+  .btn-sm {
+    padding: 6px 12px;
+    border: 1px solid var(--btn-border);
+    border-radius: 8px;
+    background: var(--btn-bg);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: background .15s, transform .05s;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .btn-sm:hover { background: var(--btn-hover); }
+  .btn-sm:active { transform: scale(.96); }
+  .btn-sm.accent {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .btn-sm.accent:hover { background: var(--accent-light); filter: brightness(.95); }
+
+  /* ---------- Tabs (mobile) ---------- */
+  .tab-bar {
+    display: none;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 12;
+  }
+  .tab-bar .tab {
+    flex: 1;
+    padding: 12px 16px;
+    border: none; background: transparent;
+    color: var(--text-dim);
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; position: relative;
+    font-family: inherit;
+    transition: color .15s, background .15s;
+  }
+  .tab-bar .tab.active {
+    color: var(--accent);
+    background: var(--panel-bg);
+  }
+  .tab-bar .tab.active::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent);
+  }
+
+  /* ---------- Split ---------- */
+  .split {
+    flex: 1; display: flex;
+    overflow: hidden; min-height: 0;
+  }
+  .editor-pane, .preview-pane {
+    display: flex; flex-direction: column;
+    overflow: hidden; min-height: 0; min-width: 0;
+  }
+  .editor-pane {
+    flex: 0 0 50%;
+    background: var(--editor-bg);
+  }
+  .preview-pane {
+    flex: 1 1 auto;
+    background: var(--panel-bg);
+  }
+
+  /* ---------- Pane headers ---------- */
+  .pane-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .badge {
+    font-size: 11px; font-weight: 500;
+    text-transform: none; letter-spacing: 0;
+    padding: 2px 8px; border-radius: 10px;
+    background: var(--accent-light); color: var(--accent);
+    transition: opacity .3s;
+    white-space: nowrap;
+  }
+  .badge.idle { background: transparent; color: var(--text-dim); }
+
+  /* ---------- Format toolbar ---------- */
+  .format-toolbar {
+    display: flex; gap: 3px;
+    padding: 6px 8px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+  }
+  .format-toolbar::-webkit-scrollbar { display: none; }
+  .fmt-btn {
+    padding: 5px 8px;
+    min-width: 30px; height: 28px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 600;
+    transition: background .12s, border-color .12s;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .fmt-btn:hover { background: var(--btn-hover); border-color: var(--btn-border); }
+  .fmt-btn:active { transform: scale(.94); }
+  .fmt-sep {
+    width: 1px; height: 18px;
+    background: var(--border);
+    align-self: center;
+    margin: 0 3px;
+    flex-shrink: 0;
+  }
+
+  /* ---------- Editor ---------- */
+  #mdEditor {
+    flex: 1;
+    width: 100%;
+    padding: 14px 18px;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size: 13.5px;
+    line-height: 1.65;
+    background: var(--editor-bg);
+    color: var(--editor-text);
+    transition: background .2s, color .2s;
+    tab-size: 2;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* ---------- Preview ---------- */
+  #previewFrame {
+    flex: 1;
+    border: none;
+    background: #ffffff;
+    width: 100%; height: 100%;
+  }
+  body.dark #previewFrame { background: #0d1117; }
+
+  /* ---------- Divider ---------- */
+  .divider {
+    flex: 0 0 6px;
+    background: var(--border);
+    cursor: col-resize;
+    position: relative;
+    transition: background .15s;
+    user-select: none;
+    touch-action: none;
+  }
+  .divider::after {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px; height: 32px;
+    background: var(--text-dim);
+    border-radius: 2px;
+    opacity: .35;
+    transition: opacity .15s, height .15s;
+  }
+  .divider:hover, .divider.active { background: var(--accent); }
+  .divider:hover::after, .divider.active::after {
+    opacity: .9; height: 48px; background: #fff;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    padding: 10px 20px;
+    background: #1c1c1e; color: #fff;
+    border-radius: 10px;
+    font-size: 13px; font-weight: 500;
+    box-shadow: 0 6px 24px rgba(0,0,0,.3);
+    opacity: 0; pointer-events: none;
+    transition: transform .3s, opacity .3s;
+    z-index: 1000; max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Drop overlay ---------- */
+  .drop-overlay {
+    position: fixed; inset: 0;
+    background: rgba(124,58,237,.15);
+    border: 3px dashed var(--accent);
+    z-index: 999;
+    display: none;
+    align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 600;
+    color: var(--accent);
+    pointer-events: none;
+  }
+  .drop-overlay.visible { display: flex; }
+
+  /* ---------- Footer ---------- */
+  .app-footer {
+    display: flex; align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    background: var(--panel-bg);
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .app-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .app-footer a:hover { text-decoration: underline; }
+  .app-footer .sep { opacity: .5; }
+  .app-footer .heart { color: #ff3b30; }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 899px) {
+    .tab-bar { display: flex; }
+    .divider { display: none; }
+    .split { flex-direction: column; }
+    .editor-pane, .preview-pane {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    .split[data-active="code"] .preview-pane { display: none; }
+    .split[data-active="preview"] .editor-pane { display: none; }
+
+    .app-header { padding: 6px 8px; gap: 6px; }
+    .brand { font-size: 13px; }
+    .brand .logo { width: 24px; height: 24px; }
+    .btn { padding: 6px 9px; font-size: 12px; }
+    .btn-text { display: none; }
+
+    .transform-bar { padding: 5px 8px; gap: 4px; }
+    .btn-sm { padding: 5px 9px; font-size: 11px; }
+    .transform-label { font-size: 10px; }
+
+    .pane-header { padding: 4px 10px; font-size: 11px; }
+    .badge { font-size: 10px; padding: 1px 6px; }
+    #mdEditor { font-size: 13px; padding: 12px 14px; }
+    .fmt-btn { padding: 4px 6px; height: 26px; min-width: 26px; font-size: 12px; }
+    .toast { bottom: 16px; font-size: 12px; padding: 8px 16px; }
+    .app-footer { font-size: 10.5px; padding: 5px 8px; }
+  }
+  @media (max-width: 480px) {
+    .brand span:not(.logo) { display: none; }
+    .app-footer .hide-xs { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<header class="app-header">
+  <a href="./" class="brand" title="MD Editor">
+    <img src="icon-md-192x192.png" alt = "Md Editor Logo" class= "logo">
+    <span>MD Editor</span>
+  </a>
+
+  <div class="header-actions">
+    <label for="fileInput" class="btn" title="Import .md / .txt file">
+      📂 <span class="btn-text">Import</span>
+    </label>
+    <input type="file" id="fileInput" accept=".md,.markdown,.txt,text/markdown,text/plain" style="display:none">
+
+    <div class="dropdown" id="exportDropdown">
+      <button class="btn primary" title="Export">
+        💾 <span class="btn-text">Export</span> ▾
+      </button>
+      <div class="dropdown-menu">
+        <button data-export="md">📝 Download .md</button>
+        <button data-export="html">🌐 Download .html</button>
+        <button data-export="txt">📄 Download .txt (plain)</button>
+      </div>
+    </div>
+
+    <div class="dropdown" id="copyDropdown">
+      <button class="btn" title="Copy to clipboard">
+        📋 <span class="btn-text">Copy</span> ▾
+      </button>
+      <div class="dropdown-menu">
+        <button data-copy="md">📝 Copy Markdown</button>
+        <button data-copy="html">🌐 Copy HTML</button>
+        <button data-copy="txt">📄 Copy Plain Text</button>
+      </div>
+    </div>
+
+    <button id="clearBtn" class="btn danger" title="Clear editor">
+      🗑️ <span class="btn-text">Clear</span>
+    </button>
+
+    <button id="fullPreviewBtn" class="btn" title="Open preview in new tab">
+      🚀 <span class="btn-text">Full Preview</span>
+    </button>
+
+    <button id="themeToggle" class="btn" title="Toggle dark mode">
+      🌙 <span class="btn-text">Dark</span>
+    </button>
+  </div>
+</header>
+
+<!-- ========== TRANSFORM BAR ========== -->
+<div class="transform-bar">
+  <span class="transform-label">Transform:</span>
+  <button id="beautifyBtn" class="btn-sm accent" title="Normalize markdown whitespace and structure">✨ Beautify</button>
+  <button id="mdToPlainBtn" class="btn-sm" title="Strip markdown syntax to plain readable text">⬇️ MD → Plain</button>
+  <button id="plainToMDBtn" class="btn-sm" title="Add markdown syntax to plain text">⬆️ Plain → MD</button>
+</div>
+
+<!-- ========== MOBILE TABS ========== -->
+<nav class="tab-bar" id="tabBar">
+  <button class="tab active" data-tab="code">📝 Markdown</button>
+  <button class="tab" data-tab="preview">👁️ Preview</button>
+</nav>
+
+<!-- ========== MAIN SPLIT ========== -->
+<main class="split" id="split" data-active="code">
+  <div class="editor-pane" id="editorPane">
+    <div class="pane-header">
+      <span>📝 Markdown</span>
+      <span class="badge idle" id="stats">0 words · 0 chars</span>
+    </div>
+    <div class="format-toolbar" id="formatToolbar">
+      <button class="fmt-btn" data-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+      <button class="fmt-btn" data-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+      <button class="fmt-btn" data-action="strike" title="Strikethrough"><s>S</s></button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-action="h1" title="Heading 1"><b>H1</b></button>
+      <button class="fmt-btn" data-action="h2" title="Heading 2"><b>H2</b></button>
+      <button class="fmt-btn" data-action="h3" title="Heading 3"><b>H3</b></button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-action="link" title="Link (Ctrl+K)">🔗</button>
+      <button class="fmt-btn" data-action="code" title="Code">&lt;/&gt;</button>
+      <button class="fmt-btn" data-action="quote" title="Quote">❝</button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-action="ul" title="Bullet list">•</button>
+      <button class="fmt-btn" data-action="ol" title="Numbered list">1.</button>
+      <button class="fmt-btn" data-action="task" title="Task list">☑</button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-action="hr" title="Horizontal rule">—</button>
+      <button class="fmt-btn" data-action="table" title="Table">▦</button>
+    </div>
+    <textarea id="mdEditor" spellcheck="false" placeholder="Start writing markdown here…"></textarea>
+  </div>
+
+  <div class="divider" id="divider" title="Drag to resize · Double-click to reset"></div>
+
+  <div class="preview-pane">
+    <div class="pane-header">
+      <span>👁️ Preview</span>
+      <span class="badge idle" id="refreshBadge">idle</span>
+    </div>
+    <iframe
+      id="previewFrame"
+      title="Markdown Preview"
+      sandbox="allow-popups allow-popups-to-escape-sandbox"
+    ></iframe>
+  </div>
+</main>
+
+<!-- ========== FOOTER ========== -->
+<footer class="app-footer">
+  <span>Made with <span class="heart">❤</span> by <a href="https://github.com/kishan5441" target="_blank" rel="noopener">Kishan</a></span>
+  <span class="sep">·</span>
+  <a href="https://github.com/kishan5441/md-editor" target="_blank" rel="noopener">GitHub</a>
+  <span class="sep hide-xs">·</span>
+  <span class="hide-xs">v1.0</span>
+  <span class="sep hide-xs">·</span>
+  <a href="https://github.com/kishan5441/md-editor/blob/main/LICENSE" target="_blank" rel="noopener" class="hide-xs">MIT</a>
+</footer>
+
+<!-- ========== OVERLAYS ========== -->
+<div class="drop-overlay" id="dropOverlay">Drop .md / .txt file to import</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * DOM refs
+   * ============================================================ */
+  const editor         = document.getElementById('mdEditor');
+  const preview        = document.getElementById('previewFrame');
+  const fileInput      = document.getElementById('fileInput');
+  const exportDropdown = document.getElementById('exportDropdown');
+  const copyDropdown   = document.getElementById('copyDropdown');
+  const clearBtn       = document.getElementById('clearBtn');
+  const fullPreviewBtn = document.getElementById('fullPreviewBtn');
+  const themeToggle    = document.getElementById('themeToggle');
+  const beautifyBtn    = document.getElementById('beautifyBtn');
+  const mdToPlainBtn   = document.getElementById('mdToPlainBtn');
+  const plainToMDBtn   = document.getElementById('plainToMDBtn');
+  const statsEl        = document.getElementById('stats');
+  const refreshBadge   = document.getElementById('refreshBadge');
+  const divider        = document.getElementById('divider');
+  const editorPane     = document.getElementById('editorPane');
+  const splitEl        = document.getElementById('split');
+  const dropOverlay    = document.getElementById('dropOverlay');
+  const toastEl        = document.getElementById('toast');
+  const tabBar         = document.getElementById('tabBar');
+  const formatToolbar  = document.getElementById('formatToolbar');
+
+  const STORAGE_KEY  = 'md-editor-v1';
+  const FILENAME_KEY = 'md-editor-v1-filename';
+  const TAB_KEY      = 'md-editor-v1-tab';
+  const THEME_KEY    = 'md-editor-v1-theme';
+
+  /* ============================================================
+   * Sample content (shows off all features)
+   * ============================================================ */
+  const SAMPLE = [
+    '# Welcome to MD Editor 👋',
+    '',
+    'A free, open-source **Markdown editor** that works entirely in your browser.',
+    '',
+    '## ✨ Features',
+    '',
+    '- **Live preview** — see your markdown rendered instantly',
+    '- **Plain ↔ MD** — convert between plain text and markdown',
+    '- **Export** — download as `.md`, `.html`, or `.txt`',
+    '- **Offline** — works without internet (after first load)',
+    '- **Mobile-friendly** — installable as an app',
+    '',
+    '## 🚀 Quick Example',
+    '',
+    'Here is some `inline code` and a code block:',
+    '',
+    '```js',
+    "const greet = (name) => `Hello, ${name}!`;",
+    "console.log(greet('World'));",
+    '```',
+    '',
+    '## 📋 Lists',
+    '',
+    '1. First item',
+    '2. Second item',
+    '3. Third item',
+    '',
+    '## 🔗 Links & More',
+    '',
+    'Visit [GitHub](https://github.com) or check out [MDN](https://developer.mozilla.org).',
+    '',
+    '> **Pro tip:** Use `Ctrl/Cmd + B` for bold and `Ctrl/Cmd + I` for italic.',
+    '',
+    '---',
+    '',
+    'Start typing to see your changes live! 🎉'
+  ].join('\n');
+
+  /* ============================================================
+   * Preview styles (injected into iframe srcdoc)
+   * ============================================================ */
+  const PREVIEW_STYLES = [
+    '* { box-sizing: border-box; }',
+    'body {',
+    "  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;",
+    '  font-size: 16px;',
+    '  line-height: 1.7;',
+    '  color: #24292f;',
+    '  background: #ffffff;',
+    '  max-width: 820px;',
+    '  margin: 0 auto;',
+    '  padding: 24px 32px 60px;',
+    '  word-wrap: break-word;',
+    '}',
+    'h1,h2,h3,h4,h5,h6 {',
+    '  margin-top: 24px;',
+    '  margin-bottom: 16px;',
+    '  font-weight: 600;',
+    '  line-height: 1.25;',
+    '}',
+    'h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid #d0d7de; }',
+    'h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #d0d7de; }',
+    'h3 { font-size: 1.25em; }',
+    'h4 { font-size: 1em; }',
+    'p { margin: 0 0 16px; }',
+    'a { color: #0969da; text-decoration: none; }',
+    'a:hover { text-decoration: underline; }',
+    'code {',
+    '  padding: 0.2em 0.4em;',
+    '  margin: 0;',
+    '  font-size: 85%;',
+    '  background: rgba(175,184,193,0.2);',
+    '  border-radius: 6px;',
+    "  font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;",
+    '}',
+    'pre {',
+    '  padding: 16px;',
+    '  overflow: auto;',
+    '  background: #f6f8fa;',
+    '  border-radius: 6px;',
+    '  margin: 0 0 16px;',
+    '  line-height: 1.45;',
+    '}',
+    'pre code { padding: 0; background: transparent; font-size: 85%; }',
+    'blockquote {',
+    '  margin: 0 0 16px;',
+    '  padding: 0 1em;',
+    '  color: #57606a;',
+    '  border-left: 0.25em solid #d0d7de;',
+    '}',
+    'ul, ol { padding-left: 2em; margin: 0 0 16px; }',
+    'li { margin: 0.25em 0; }',
+    'li > p { margin: 0; }',
+    'table {',
+    '  border-collapse: collapse;',
+    '  margin: 0 0 16px;',
+    '  display: block;',
+    '  width: max-content;',
+    '  max-width: 100%;',
+    '  overflow: auto;',
+    '}',
+    'table th, table td { padding: 6px 13px; border: 1px solid #d0d7de; }',
+    'table th { font-weight: 600; background: #f6f8fa; }',
+    'table tr:nth-child(2n) { background: #f6f8fa; }',
+    'img { max-width: 100%; height: auto; }',
+    'hr { height: 0.25em; padding: 0; margin: 24px 0; background: #d0d7de; border: 0; }',
+    'input[type="checkbox"] { margin-right: 6px; }',
+    'body.dark { background: #0d1117; color: #c9d1d9; }',
+    'body.dark a { color: #58a6ff; }',
+    'body.dark code { background: rgba(110,118,129,0.4); }',
+    'body.dark pre { background: #161b22; }',
+    'body.dark blockquote { color: #8b949e; border-color: #3b434b; }',
+    'body.dark table th, body.dark table td { border-color: #30363d; }',
+    'body.dark table th { background: #161b22; }',
+    'body.dark table tr:nth-child(2n) { background: #161b22; }',
+    'body.dark hr { background: #30363d; }',
+    'body.dark h1, body.dark h2 { border-bottom-color: #30363d; }'
+  ].join('\n');
+
+  /* ============================================================
+   * State
+   * ============================================================ */
+  let currentFilename = 'untitled.md';
+  let refreshBadgeTimer;
+  let debounceTimer;
+
+  /* ============================================================
+   * Toast
+   * ============================================================ */
+  let toastTimer;
+  function toast(msg, ms) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, ms || 2000);
+  }
+
+  /* ============================================================
+   * HTML escape
+   * ============================================================ */
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  /* ============================================================
+   * Markdown → HTML (via marked.js)
+   * ============================================================ */
+  function renderMarkdown(md) {
+    if (!window.marked) {
+      return '<pre>' + escapeHtml(md) + '</pre>';
+    }
+    try {
+      let html;
+      if (typeof marked.parse === 'function') {
+        html = marked.parse(md, { gfm: true, breaks: true });
+      } else if (typeof marked === 'function') {
+        html = marked(md, { gfm: true, breaks: true });
+      } else {
+        return '<pre>' + escapeHtml(md) + '</pre>';
+      }
+      // Force all links to open in new tab
+      html = html.replace(/<a\s+(?![^>]*\btarget=)/g, '<a target="_blank" rel="noopener noreferrer" ');
+      return html;
+    } catch (err) {
+      return '<pre>' + escapeHtml(md) + '</pre>';
+    }
+  }
+
+  /* ============================================================
+   * Stats
+   * ============================================================ */
+  function updateStats() {
+    const val = editor.value;
+    const trimmed = val.trim();
+    const words = trimmed ? trimmed.split(/\s+/).length : 0;
+    const chars = val.length;
+    const readMin = Math.max(1, Math.ceil(words / 200));
+    statsEl.textContent = words + ' words · ' + chars + ' chars · ~' + readMin + ' min';
+  }
+
+  /* ============================================================
+   * Live preview (debounced)
+   * ============================================================ */
+  function updatePreview(immediate) {
+    clearTimeout(debounceTimer);
+    const run = function () {
+      const md = editor.value;
+      const isDark = document.body.classList.contains('dark');
+      let bodyHtml;
+
+      if (!md.trim()) {
+        bodyHtml = '<div style="text-align:center;padding:80px 20px;color:#888;font-family:system-ui,sans-serif;">' +
+          '<p style="font-size:48px;margin-bottom:16px;">📝</p>' +
+          '<p style="font-size:16px;font-weight:500;">Nothing to preview yet</p>' +
+          '<p style="font-size:13px;margin-top:8px;opacity:.7;">Start typing in the editor</p>' +
+          '</div>';
+      } else {
+        bodyHtml = renderMarkdown(md);
+      }
+
+      const srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
+        PREVIEW_STYLES +
+        '</style></head><body' + (isDark ? ' class="dark"' : '') + '>' +
+        bodyHtml +
+        '</body></html>';
+
+      preview.srcdoc = srcdoc;
+
+      refreshBadge.textContent = 'updated ✓';
+      refreshBadge.classList.remove('idle');
+      clearTimeout(refreshBadgeTimer);
+      refreshBadgeTimer = setTimeout(function () {
+        refreshBadge.textContent = 'ready';
+        refreshBadge.classList.add('idle');
+      }, 900);
+    };
+    if (immediate) run();
+    else debounceTimer = setTimeout(run, 300);
+  }
+
+  /* ============================================================
+   * Save / Load
+   * ============================================================ */
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, editor.value);
+      localStorage.setItem(FILENAME_KEY, currentFilename);
+    } catch (_) {}
+  }
+  function loadSaved() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const savedName = localStorage.getItem(FILENAME_KEY);
+      if (savedName) currentFilename = savedName;
+      return saved;
+    } catch (_) { return null; }
+  }
+
+  /* ============================================================
+   * Init
+   * ============================================================ */
+  const saved = loadSaved();
+  editor.value = saved !== null ? saved : SAMPLE;
+  updateStats();
+  updatePreview(true);
+
+  /* ============================================================
+   * Editor events
+   * ============================================================ */
+  editor.addEventListener('input', function () {
+    updateStats();
+    updatePreview();
+    save();
+  });
+
+  editor.addEventListener('keydown', function (e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = editor.selectionStart;
+      const end   = editor.selectionEnd;
+      const val   = editor.value;
+      editor.value = val.substring(0, start) + '  ' + val.substring(end);
+      editor.selectionStart = editor.selectionEnd = start + 2;
+      updateStats();
+      save();
+      updatePreview();
+    }
+    // Ctrl/Cmd shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'b') { e.preventDefault(); doAction('bold'); }
+      else if (k === 'i') { e.preventDefault(); doAction('italic'); }
+      else if (k === 'k') { e.preventDefault(); doAction('link'); }
+      else if (k === 's') { e.preventDefault(); exportAs('md'); }
+      else if (k === 'enter') {
+        e.preventDefault();
+        if (window.innerWidth < 900) {
+          const active = splitEl.dataset.active === 'code' ? 'preview' : 'code';
+          setActiveTab(active);
+        }
+      }
+    }
+  });
+
+  /* ============================================================
+   * Format toolbar actions
+   * ============================================================ */
+  function getSelectionOrPlaceholder(placeholder) {
+    const start = editor.selectionStart;
+    const end   = editor.selectionEnd;
+    const sel   = editor.value.substring(start, end);
+    return { start: start, end: end, selected: sel, text: sel || placeholder || '' };
+  }
+
+  function wrapSelection(before, after, placeholder) {
+    const { start, end, selected, text } = getSelectionOrPlaceholder(placeholder);
+    const newValue = editor.value.substring(0, start) + before + text + after + editor.value.substring(end);
+    editor.value = newValue;
+    editor.selectionStart = start + before.length;
+    editor.selectionEnd   = start + before.length + text.length;
+    editor.focus();
+    onAfterEdit();
+  }
+
+  function prefixLines(prefix) {
+    const start = editor.selectionStart;
+    const end   = editor.selectionEnd;
+    const value = editor.value;
+    let firstStart = value.lastIndexOf('\n', start - 1) + 1;
+    let lastEnd = value.indexOf('\n', end);
+    if (lastEnd === -1) lastEnd = value.length;
+    const block = value.substring(firstStart, lastEnd);
+    const lines = block.split('\n');
+    const newBlock = lines.map(function (line) {
+      const stripped = line.replace(/^(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s+|[-*+]\s+\[[ xX]\]\s+)/, '');
+      return prefix + stripped;
+    }).join('\n');
+    editor.value = value.substring(0, firstStart) + newBlock + value.substring(lastEnd);
+    editor.selectionStart = firstStart;
+    editor.selectionEnd   = firstStart + newBlock.length;
+    editor.focus();
+    onAfterEdit();
+  }
+
+  function insertText(text) {
+    const start = editor.selectionStart;
+    const end   = editor.selectionEnd;
+    editor.value = editor.value.substring(0, start) + text + editor.value.substring(end);
+    editor.selectionStart = editor.selectionEnd = start + text.length;
+    editor.focus();
+    onAfterEdit();
+  }
+
+  function insertLink() {
+    const { start, end, text } = getSelectionOrPlaceholder('link text');
+    const md = '[' + text + '](https://)';
+    editor.value = editor.value.substring(0, start) + md + editor.value.substring(end);
+    const urlStart = start + 1 + text.length + 2;
+    editor.selectionStart = editor.selectionEnd = urlStart;
+    editor.focus();
+    onAfterEdit();
+  }
+
+  function insertCode() {
+    const { start, end, selected } = getSelectionOrPlaceholder();
+    if (selected.indexOf('\n') !== -1) {
+      // Multi-line → code block
+      const md = '```\n' + selected + '\n```';
+      editor.value = editor.value.substring(0, start) + md + editor.value.substring(end);
+      editor.selectionStart = start + 4;
+      editor.selectionEnd   = start + 4 + selected.length;
+    } else {
+      // Inline code
+      const code = selected || 'code';
+      const md = '`' + code + '`';
+      editor.value = editor.value.substring(0, start) + md + editor.value.substring(end);
+      editor.selectionStart = start + 1;
+      editor.selectionEnd   = start + 1 + code.length;
+    }
+    editor.focus();
+    onAfterEdit();
+  }
+
+  function insertTable() {
+    const table = '\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n\n';
+    insertText(table);
+  }
+
+  function doAction(action) {
+    switch (action) {
+      case 'bold':   wrapSelection('**', '**', 'bold text'); break;
+      case 'italic': wrapSelection('*', '*', 'italic text'); break;
+      case 'strike': wrapSelection('~~', '~~', 'strikethrough'); break;
+      case 'h1':     prefixLines('# '); break;
+      case 'h2':     prefixLines('## '); break;
+      case 'h3':     prefixLines('### '); break;
+      case 'link':   insertLink(); break;
+      case 'code':   insertCode(); break;
+      case 'quote':  prefixLines('> '); break;
+      case 'ul':     prefixLines('- '); break;
+      case 'ol':     prefixLines('1. '); break;
+      case 'task':   prefixLines('- [ ] '); break;
+      case 'hr':     insertText('\n---\n'); break;
+      case 'table':  insertTable(); break;
+    }
+  }
+
+  function onAfterEdit() {
+    updateStats();
+    updatePreview();
+    save();
+  }
+
+  formatToolbar.addEventListener('click', function (e) {
+    const btn = e.target.closest('.fmt-btn');
+    if (!btn) return;
+    doAction(btn.dataset.action);
+  });
+
+  /* ============================================================
+   * Transform functions
+   * ============================================================ */
+
+  // Beautify: normalize markdown whitespace and structure
+  function beautify(md) {
+    let text = md.replace(/\r\n/g, '\n');
+
+    // Normalize bullet chars → -
+    text = text.replace(/^(\s*)[•●▪▫◦‣⁃·]\s+/gm, '$1- ');
+
+    // Normalize numbered "1)" → "1."
+    text = text.replace(/^(\s*)(\d+)\)\s+/gm, '$1$2. ');
+
+    // Ensure space after # in headings
+    text = text.replace(/^(\s*)(#{1,6})([^#\s])/gm, '$1$2 $3');
+
+    // Trim trailing whitespace
+    text = text.replace(/[ \t]+$/gm, '');
+
+    // Ensure blank line around headings
+    text = text.replace(/([^\n])\n(#{1,6}\s)/g, '$1\n\n$2');
+    text = text.replace(/(#{1,6}\s[^\n]+)\n([^\n#])/g, '$1\n\n$2');
+
+    // Ensure blank line before lists (if previous line isn't blank or list)
+    text = text.replace(/([^\n-*+\d>\s][^\n]*)\n(\s*[-*+]\s)/g, '$1\n\n$2');
+    text = text.replace(/([^\n-*+\d>\s][^\n]*)\n(\s*\d+\.\s)/g, '$1\n\n$2');
+
+    // Collapse 3+ blank lines to 2
+    text = text.replace(/\n{3,}/g, '\n\n');
+
+    // Trim leading/trailing newlines
+    text = text.replace(/^\n+/, '').replace(/\n+$/, '');
+    return text + '\n';
+  }
+
+  // MD → Plain: strip markdown formatting, keep readable structure
+  function mdToPlain(md) {
+    let text = md.replace(/\r\n/g, '\n');
+
+    // Code blocks → indented
+    text = text.replace(/```[\w-]*\n([\s\S]*?)```/g, function (m, code) {
+      return code.split('\n').map(function (line) {
+        return line ? '    ' + line : line;
+      }).join('\n');
+    });
+
+    // Inline code
+    text = text.replace(/`([^`\n]+)`/g, '$1');
+
+    // Images
+    text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function (m, alt, url) {
+      return '[Image: ' + (alt || 'image') + '] ' + url;
+    });
+
+    // Links
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+
+    // Autolinks
+    text = text.replace(/<(https?:\/\/[^>]+)>/g, '$1');
+
+    // Headings → strip prefix, uppercase h1/h2
+    text = text.replace(/^(#{1,6})\s+(.+)$/gm, function (m, hashes, content) {
+      return content;
+    });
+
+    // Bold (must be before italic)
+    text = text.replace(/\*\*(.+?)\*\*/g, '$1');
+    text = text.replace(/__(.+?)__/g, '$1');
+
+    // Italic
+    text = text.replace(/\*([^*\n]+)\*/g, '$1');
+    text = text.replace(/(^|\s)_([^_\n]+)_(?=\s|$)/g, '$1$2');
+
+    // Strikethrough
+    text = text.replace(/~~(.+?)~~/g, '$1');
+
+    // Task lists
+    text = text.replace(/^(\s*)[-*+]\s+\[([ xX])\]\s+(.+)$/gm, function (m, indent, checked, content) {
+      return indent + '[' + (checked === 'x' || checked === 'X' ? '✓' : ' ') + '] ' + content;
+    });
+
+    // Bullet lists → •
+    text = text.replace(/^(\s*)[-*+]\s+(.+)$/gm, '$1• $2');
+
+    // Blockquotes → │
+    text = text.replace(/^>\s?(.*)$/gm, '│ $1');
+
+    // HR
+    text = text.replace(/^(\*{3,}|-{3,}|_{3,})$/gm, '─────────────────');
+
+    // Collapse excess blank lines
+    text = text.replace(/\n{3,}/g, '\n\n');
+
+    return text.replace(/^\n+/, '').replace(/\n+$/, '') + '\n';
+  }
+
+  // Plain → MD: normalize plain text with markdown structure
+  function plainToMD(text) {
+    let result = text.replace(/\r\n/g, '\n');
+
+    // Normalize bullet chars → -
+    result = result.replace(/^(\s*)[•●▪▫◦‣⁃·]\s+/gm, '$1- ');
+
+    // Numbered "1)" → "1."
+    result = result.replace(/^(\s*)(\d+)\)\s+/gm, '$1$2. ');
+
+    // Trim trailing whitespace
+    result = result.replace(/[ \t]+$/gm, '');
+
+    // Collapse multiple blank lines
+    result = result.replace(/\n{3,}/g, '\n\n');
+
+    // Ensure blank line before list blocks
+    result = result.replace(/([^\n-*+\d>\s][^\n]*)\n(\s*[-*+]\s)/g, '$1\n\n$2');
+    result = result.replace(/([^\n-*+\d>\s][^\n]*)\n(\s*\d+\.\s)/g, '$1\n\n$2');
+
+    return result.replace(/^\n+/, '').replace(/\n+$/, '') + '\n';
+  }
+
+  beautifyBtn.addEventListener('click', function () {
+    if (!editor.value.trim()) { toast('Nothing to format'); return; }
+    editor.value = beautify(editor.value);
+    editor.scrollTop = 0;
+    editor.selectionStart = editor.selectionEnd = 0;
+    onAfterEdit();
+    toast('✨ Beautified');
+  });
+
+  mdToPlainBtn.addEventListener('click', function () {
+    if (!editor.value.trim()) { toast('Nothing to convert'); return; }
+    editor.value = mdToPlain(editor.value);
+    editor.scrollTop = 0;
+    editor.selectionStart = editor.selectionEnd = 0;
+    onAfterEdit();
+    toast('⬇️ Converted to plain text');
+  });
+
+  plainToMDBtn.addEventListener('click', function () {
+    if (!editor.value.trim()) { toast('Nothing to convert'); return; }
+    editor.value = plainToMD(editor.value);
+    editor.scrollTop = 0;
+    editor.selectionStart = editor.selectionEnd = 0;
+    onAfterEdit();
+    toast('⬆️ Converted to Markdown');
+  });
+
+  /* ============================================================
+   * Import
+   * ============================================================ */
+  function importFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      editor.value = ev.target.result;
+      currentFilename = file.name || 'untitled.md';
+      updateStats();
+      updatePreview(true);
+      save();
+      toast('Imported: ' + file.name);
+    };
+    reader.onerror = function () { toast('Failed to read file', 2500); };
+    reader.readAsText(file);
+  }
+
+  fileInput.addEventListener('change', function (e) {
+    importFile(e.target.files[0]);
+    fileInput.value = '';
+  });
+
+  /* ============================================================
+   * Drag & drop
+   * ============================================================ */
+  let dragDepth = 0;
+  function isMD(f) {
+    if (!f) return false;
+    const n = (f.name || '').toLowerCase();
+    return f.type === 'text/markdown' || f.type === 'text/plain' ||
+      n.endsWith('.md') || n.endsWith('.markdown') || n.endsWith('.txt');
+  }
+  window.addEventListener('dragenter', function (e) {
+    e.preventDefault();
+    dragDepth++;
+    if (e.dataTransfer && Array.from(e.dataTransfer.items || []).length) {
+      dropOverlay.classList.add('visible');
+    }
+  });
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('dragleave', function (e) {
+    e.preventDefault();
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) dropOverlay.classList.remove('visible');
+  });
+  window.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dragDepth = 0;
+    dropOverlay.classList.remove('visible');
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (isMD(file)) importFile(file);
+    else if (file) toast('Only .md / .markdown / .txt supported', 2500);
+  });
+
+  /* ============================================================
+   * Export
+   * ============================================================ */
+  function getBaseName() {
+    return (currentFilename || 'untitled').replace(/\.[^.]+$/, '');
+  }
+
+  function exportAs(format) {
+    let content, filename, mime;
+    if (format === 'html') {
+      const mdHtml = renderMarkdown(editor.value);
+      const isDark = document.body.classList.contains('dark');
+      content = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+        '<title>' + escapeHtml(getBaseName()) + '</title>\n' +
+        '<style>\n' + PREVIEW_STYLES + '\n</style>\n</head>\n' +
+        '<body' + (isDark ? ' class="dark"' : '') + '>\n' +
+        mdHtml + '\n</body>\n</html>';
+      filename = getBaseName() + '.html';
+      mime = 'text/html;charset=utf-8';
+    } else if (format === 'txt') {
+      content = mdToPlain(editor.value);
+      filename = getBaseName() + '.txt';
+      mime = 'text/plain;charset=utf-8';
+    } else {
+      content = editor.value;
+      filename = getBaseName() + '.md';
+      mime = 'text/markdown;charset=utf-8';
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    toast('Exported: ' + filename);
+  }
+
+  /* ============================================================
+   * Copy to clipboard
+   * ============================================================ */
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (_) {}
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  async function copyAs(format) {
+    let content;
+    if (format === 'html') {
+      content = renderMarkdown(editor.value);
+    } else if (format === 'txt') {
+      content = mdToPlain(editor.value);
+    } else {
+      content = editor.value;
+    }
+    const ok = await copyText(content);
+    if (ok) toast('✅ Copied as ' + format.toUpperCase());
+    else toast('Copy failed', 2500);
+  }
+
+  /* ============================================================
+   * Dropdown handling
+   * ============================================================ */
+  function setupDropdown(dropdownEl, onSelect) {
+    const btn = dropdownEl.querySelector(':scope > .btn');
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      document.querySelectorAll('.dropdown.open').forEach(function (d) {
+        if (d !== dropdownEl) d.classList.remove('open');
+      });
+      dropdownEl.classList.toggle('open');
+    });
+    dropdownEl.querySelectorAll('.dropdown-menu button').forEach(function (item) {
+      item.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdownEl.classList.remove('open');
+        onSelect(item);
+      });
+    });
+  }
+
+  setupDropdown(exportDropdown, function (item) {
+    exportAs(item.dataset.export);
+  });
+  setupDropdown(copyDropdown, function (item) {
+    copyAs(item.dataset.copy);
+  });
+
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.dropdown.open').forEach(function (d) { d.classList.remove('open'); });
+  });
+
+  /* ============================================================
+   * Clear
+   * ============================================================ */
+  clearBtn.addEventListener('click', function () {
+    if (editor.value.trim() === '') { toast('Editor is already empty'); return; }
+    if (confirm('Clear all markdown from the editor?\n\n(Your imported file on disk is safe.)')) {
+      editor.value = '';
+      currentFilename = 'untitled.md';
+      updateStats();
+      updatePreview(true);
+      save();
+      editor.focus();
+      toast('Editor cleared');
+    }
+  });
+
+  /* ============================================================
+   * Full Preview
+   * ============================================================ */
+  fullPreviewBtn.addEventListener('click', function () {
+    const w = window.open('', '_blank');
+    if (w) {
+      try {
+        const isDark = document.body.classList.contains('dark');
+        const mdHtml = renderMarkdown(editor.value);
+        w.document.open();
+        w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+          '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+          '<title>' + escapeHtml(getBaseName()) + '</title>' +
+          '<style>' + PREVIEW_STYLES + '</style></head>' +
+          '<body' + (isDark ? ' class="dark"' : '') + '>' + mdHtml + '</body></html>');
+        w.document.close();
+        toast('Opened in new tab');
+        return;
+      } catch (_) {
+        try { w.close(); } catch (__) {}
+      }
+    }
+    // Fallback: Blob URL
+    try {
+      const isDark = document.body.classList.contains('dark');
+      const mdHtml = renderMarkdown(editor.value);
+      const html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+        '<title>' + escapeHtml(getBaseName()) + '</title>' +
+        '<style>' + PREVIEW_STYLES + '</style></head>' +
+        '<body' + (isDark ? ' class="dark"' : '') + '>' + mdHtml + '</body></html>';
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url  = URL.createObjectURL(blob);
+      const w2   = window.open(url, '_blank');
+      if (!w2) {
+        toast('Pop-up blocked — allow pop-ups', 3500);
+        URL.revokeObjectURL(url);
+        return;
+      }
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+      toast('Opened in new tab');
+    } catch (err) {
+      toast('Full Preview failed: ' + err.message, 3000);
+    }
+  });
+
+  /* ============================================================
+   * Theme
+   * ============================================================ */
+  function applyTheme(isDark) {
+    document.body.classList.toggle('dark', isDark);
+    themeToggle.innerHTML = (isDark ? '☀️ <span class="btn-text">Light</span>' : '🌙 <span class="btn-text">Dark</span>');
+    updatePreview(true);
+  }
+
+  themeToggle.addEventListener('click', function () {
+    const isDark = !document.body.classList.contains('dark');
+    applyTheme(isDark);
+    try { localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light'); } catch(_) {}
+  });
+
+  try {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (savedTheme === 'dark' ||
+        (savedTheme === null && window.matchMedia &&
+         window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      applyTheme(true);
+    }
+  } catch (_) {}
+
+  /* ============================================================
+   * Tab system (mobile)
+   * ============================================================ */
+  function setActiveTab(tabName) {
+    splitEl.dataset.active = tabName;
+    tabBar.querySelectorAll('.tab').forEach(function (t) {
+      t.classList.toggle('active', t.dataset.tab === tabName);
+    });
+    try { localStorage.setItem(TAB_KEY, tabName); } catch(_) {}
+    if (tabName === 'preview') {
+      editor.blur();
+      updatePreview(true);
+    }
+  }
+
+  tabBar.addEventListener('click', function (e) {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    setActiveTab(tab.dataset.tab);
+  });
+
+  try {
+    const savedTab = localStorage.getItem(TAB_KEY);
+    if (savedTab === 'preview' || savedTab === 'code') setActiveTab(savedTab);
+  } catch (_) {}
+
+  /* ============================================================
+   * Split divider
+   * ============================================================ */
+  let isResizing = false, startX = 0, startWidth = 0;
+
+  divider.addEventListener('pointerdown', function (e) {
+    if (window.innerWidth < 900) return;
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = editorPane.getBoundingClientRect().width;
+    divider.classList.add('active');
+    divider.setPointerCapture(e.pointerId);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+  });
+
+  divider.addEventListener('pointermove', function (e) {
+    if (!isResizing) return;
+    const dx = e.clientX - startX;
+    const splitRect = splitEl.getBoundingClientRect();
+    const newW = Math.max(200, Math.min(startWidth + dx, splitRect.width - 200 - 6));
+    editorPane.style.width = newW + 'px';
+  });
+
+  function endResize(e) {
+    if (!isResizing) return;
+    isResizing = false;
+    divider.classList.remove('active');
+    try { divider.releasePointerCapture(e.pointerId); } catch (_) {}
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+  }
+  divider.addEventListener('pointerup', endResize);
+  divider.addEventListener('pointercancel', endResize);
+  divider.addEventListener('dblclick', function () {
+    editorPane.style.width = '50%';
+    toast('Split reset to 50/50');
+  });
+
+  let lastWasMobile = window.innerWidth < 900;
+  window.addEventListener('resize', function () {
+    const isMobile = window.innerWidth < 900;
+    if (isMobile !== lastWasMobile) {
+      editorPane.style.width = '';
+      lastWasMobile = isMobile;
+    }
+  });
+
+  /* ============================================================
+   * Global shortcut
+   * ============================================================ */
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      exportAs('md');
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
